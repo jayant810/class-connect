@@ -1,0 +1,59 @@
+# ==============================================================================
+# MedAI Community Discussion System - Production Environment Requirements
+# Version: 3.1
+# ==============================================================================
+
+# 1. Runtime Environment
+# ------------------------------------------------------------------------------
+node >= 18.17.0
+npm >= 9.6.0
+typescript >= 5.0.0
+
+# 2. Database (Primary Persistence)
+# ------------------------------------------------------------------------------
+postgresql >= 14.0
+# Extensions Required: pgcrypto (for UUID generation)
+
+# 3. Security & Anti-Virus (Production Grade)
+# ------------------------------------------------------------------------------
+clamav >= 1.0.0
+# Service: clamd (must be running as a daemon)
+# CLI: clamdscan (preferred over clamscan for performance)
+
+# 4. Storage (Infrastructure)
+# ------------------------------------------------------------------------------
+# Default: Local File System (/server/uploads)
+# Recommendation: AWS S3 or Cloudinary for production scalability
+
+# 5. Real-time Infrastructure
+# ------------------------------------------------------------------------------
+# Default: In-memory Socket.IO adapter
+# Recommendation: Redis 6.x+ (required if scaling to multiple API instances)
+
+# 6. Backend Dependencies (Summary of package.json)
+# ------------------------------------------------------------------------------
+express          # Web Framework
+socket.io        # Real-time Engine
+pg               # PostgreSQL Client
+bcryptjs         # Password Hashing
+jsonwebtoken     # Authentication
+multer           # Multipart/File Upload
+clamscan         # ClamAV Node Interface
+dotenv           # Env Management
+cors             # Security Headers
+
+# 7. Frontend Dependencies (Summary of package.json)
+# ------------------------------------------------------------------------------
+react >= 18.0
+vite             # Build Tool
+tailwindcss      # Styling
+lucide-react     # Iconography
+next-themes      # Dark Mode Management
+axios            # API Client
+socket.io-client # Real-time Client
+@tanstack/react-query # State/Data Fetching
+
+# 8. OS Level Dependencies (Linux/Debian Example)
+# ------------------------------------------------------------------------------
+# sudo apt-get update
+# sudo apt-get install clamav clamav-daemon postgresql-client
