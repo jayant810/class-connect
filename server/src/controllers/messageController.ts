@@ -1,14 +1,28 @@
 import { Request, Response } from 'express';
 import pool from '../db/index.js';
+import { extractLinks, fetchLinkMetadata } from '../utils/linkPreview.js';
 
 export const createMessage = async (req: any, res: Response) => {
   const { channelId, content, attachmentUrl, attachmentName, attachmentSize, isDoubt } = req.body;
   const userId = req.user.id;
 
   try {
+    // Process link previews
+    const links = extractLinks(content || '');
+    let linkMetadata = null;
+    if (links.length > 0) {
+      console.log('Extracted links:', links);
+      // Just take the first link for now to avoid overloading
+      const metadata = await fetchLinkMetadata(links[0]);
+      if (metadata) {
+        console.log('Fetched metadata:', metadata);
+        linkMetadata = metadata; // node-postgres handles objects for jsonb
+      }
+    }
+
     const result = await pool.query(
-      'INSERT INTO messages (channel_id, sender_id, content, attachment_url, attachment_name, attachment_size, is_doubt, verification_status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-      [channelId, userId, content, attachmentUrl, attachmentName, attachmentSize, isDoubt || false, isDoubt ? 'pending' : 'none']
+      'INSERT INTO messages (channel_id, sender_id, content, attachment_url, attachment_name, attachment_size, is_doubt, verification_status, link_metadata) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+      [channelId, userId, content, attachmentUrl, attachmentName, attachmentSize, isDoubt || false, isDoubt ? 'pending' : 'none', linkMetadata]
     );
 
     const message = result.rows[0];

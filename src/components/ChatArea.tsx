@@ -188,9 +188,66 @@ const ChatArea = ({ messages, typingUsers, channelName, onSendMessage, onSendFil
 
                     <div className={msg.verification_status === 'incorrect' ? 'opacity-50 line-through decoration-rose-500/50' : ''}>
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                        {msg.content?.replace(' [SAFE]', '')}
+                        {msg.content?.split(/(https?:\/\/[^\s]+)/g).map((part: string, i: number) => {
+                          if (part.match(/^https?:\/\//)) {
+                            return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline break-all">{part}</a>;
+                          }
+                          return part.replace(' [SAFE]', '');
+                        })}
                       </p>
                     </div>
+
+                    {msg.link_metadata && (
+                      <div className={`mt-3 overflow-hidden rounded-xl border ${
+                        isSelf ? "border-white/20 bg-black/10" : "border-border bg-background/50"
+                      }`}>
+                        {(() => {
+                          const meta = typeof msg.link_metadata === 'string' ? JSON.parse(msg.link_metadata) : msg.link_metadata;
+                          if (!meta) return null;
+
+                          if (meta.youtubeId) {
+                            return (
+                              <div className="max-w-[400px] w-full aspect-video rounded-lg overflow-hidden border border-white/5 shadow-sm">
+                                <iframe
+                                  key={`yt-${msg.id}`}
+                                  src={`https://www.youtube.com/embed/${meta.youtubeId}`}
+                                  className="h-full w-full"
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  allowFullScreen
+                                />
+                              </div>
+                            );
+                          }
+                          if (meta.instagramId) {
+                            return (
+                              <div className="w-fit mx-auto h-[450px] overflow-hidden bg-white rounded-lg border border-white/5 shadow-sm">
+                                <iframe
+                                  key={`ig-${msg.id}`}
+                                  src={`https://www.instagram.com/p/${meta.instagramId}/embed`}
+                                  className="w-[320px] h-full border-0"
+                                  allowTransparency
+                                  scrolling="no"
+                                />
+                              </div>
+                            );
+                          }
+                          return (
+                            <a href={meta.url} target="_blank" rel="noopener noreferrer" className="flex flex-col sm:flex-row gap-3 p-3 hover:bg-white/5 transition-colors">
+                              {meta.image && (
+                                <div className="shrink-0 w-full sm:w-24 h-32 sm:h-24 rounded-lg overflow-hidden bg-muted">
+                                  <img src={meta.image} alt="" className="w-full h-full object-cover" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                <h4 className={`text-sm font-bold truncate ${isSelf ? "text-primary-foreground" : "text-foreground"}`}>{meta.title}</h4>
+                                {meta.description && <p className={`text-xs line-clamp-2 mt-1 ${isSelf ? "text-primary-foreground/70" : "text-muted-foreground"}`}>{meta.description}</p>}
+                                <span className={`text-[10px] mt-2 truncate ${isSelf ? "text-primary-foreground/50" : "text-muted-foreground/60"}`}>{new URL(meta.url).hostname}</span>
+                              </div>
+                            </a>
+                          );
+                        })()}
+                      </div>
+                    )}
 
                     {msg.attachment_url && (
                       <div className="mt-2">

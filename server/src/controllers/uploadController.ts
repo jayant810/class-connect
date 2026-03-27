@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import NodeClam from 'clamscan';
 import { io } from '../index.js';
+import { extractLinks, fetchLinkMetadata } from '../utils/linkPreview.js';
 
 // Initialize ClamAV with error handling
 let scanner: any = null;
@@ -62,18 +63,28 @@ export const uploadFile = async (req: any, res: Response) => {
   }
   
   try {
+    // Process link previews
+    const links = extractLinks(req.body.content || '');
+    let linkMetadata = null;
+    if (links.length > 0) {
+      const metadata = await fetchLinkMetadata(links[0]);
+      if (metadata) {
+        linkMetadata = metadata;
+      }
+    }
+
     let result;
     if (receiverId) {
       // DM Upload
       result = await pool.query(
-        'INSERT INTO direct_messages (sender_id, receiver_id, content, attachment_url, attachment_name, attachment_size) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-        [userId, receiverId, req.body.content || '', fileUrl, file.originalname, `${(file.size / 1024 / 1024).toFixed(2)} MB`]
+        'INSERT INTO direct_messages (sender_id, receiver_id, content, attachment_url, attachment_name, attachment_size, link_metadata) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+        [userId, receiverId, req.body.content || '', fileUrl, file.originalname, `${(file.size / 1024 / 1024).toFixed(2)} MB`, linkMetadata]
       );
     } else {
       // Channel Message Upload
       result = await pool.query(
-        'INSERT INTO messages (channel_id, sender_id, content, attachment_url, attachment_name, attachment_size, is_doubt, verification_status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-        [channelId, userId, req.body.content || '', fileUrl, file.originalname, `${(file.size / 1024 / 1024).toFixed(2)} MB`, isDoubt === 'true', 'pending']
+        'INSERT INTO messages (channel_id, sender_id, content, attachment_url, attachment_name, attachment_size, is_doubt, verification_status, link_metadata) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+        [channelId, userId, req.body.content || '', fileUrl, file.originalname, `${(file.size / 1024 / 1024).toFixed(2)} MB`, isDoubt === 'true', 'pending', linkMetadata]
       );
     }
 

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import pool from '../db/index.js';
+import { extractLinks, fetchLinkMetadata } from '../utils/linkPreview.js';
 
 export const getDMFeed = async (req: any, res: Response) => {
   const userId = req.user.id;
@@ -45,11 +46,23 @@ export const sendDM = async (req: any, res: Response) => {
   const { receiverId, content, attachment_url, attachment_name, attachment_size } = req.body;
 
   try {
+    // Process link previews
+    const links = extractLinks(content || '');
+    let linkMetadata = null;
+    if (links.length > 0) {
+      console.log('Extracted DM links:', links);
+      const metadata = await fetchLinkMetadata(links[0]);
+      if (metadata) {
+        console.log('Fetched DM metadata:', metadata);
+        linkMetadata = metadata;
+      }
+    }
+
     const result = await pool.query(`
-      INSERT INTO direct_messages (sender_id, receiver_id, content, attachment_url, attachment_name, attachment_size)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO direct_messages (sender_id, receiver_id, content, attachment_url, attachment_name, attachment_size, link_metadata)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
-    `, [userId, receiverId, content || '', attachment_url || null, attachment_name || null, attachment_size || null]);
+    `, [userId, receiverId, content || '', attachment_url || null, attachment_name || null, attachment_size || null, linkMetadata]);
     
     const message = result.rows[0];
     const senderResult = await pool.query('SELECT name, avatar, role FROM users WHERE id = $1', [userId]);
